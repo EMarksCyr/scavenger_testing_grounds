@@ -44,6 +44,15 @@ public partial class @Controls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""MainAttack"",
+                    ""type"": ""Button"",
+                    ""id"": ""bfc32a88-8f65-4343-979f-3d8286fc89c0"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -134,6 +143,28 @@ public partial class @Controls: IInputActionCollection2, IDisposable
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""2159f1d9-d6e9-44fc-a0c1-b91e3dc7cd78"",
+                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""MainAttack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f730a206-115d-4f7d-9c0d-7843afd3ee4f"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard and Mouse"",
+                    ""action"": ""MainAttack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -172,6 +203,7 @@ public partial class @Controls: IInputActionCollection2, IDisposable
         m_Player = asset.FindActionMap("Player", throwIfNotFound: true);
         m_Player_Dash = m_Player.FindAction("Dash", throwIfNotFound: true);
         m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
+        m_Player_MainAttack = m_Player.FindAction("MainAttack", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -235,12 +267,14 @@ public partial class @Controls: IInputActionCollection2, IDisposable
     private List<IPlayerActions> m_PlayerActionsCallbackInterfaces = new List<IPlayerActions>();
     private readonly InputAction m_Player_Dash;
     private readonly InputAction m_Player_Move;
+    private readonly InputAction m_Player_MainAttack;
     public struct PlayerActions
     {
         private @Controls m_Wrapper;
         public PlayerActions(@Controls wrapper) { m_Wrapper = wrapper; }
         public InputAction @Dash => m_Wrapper.m_Player_Dash;
         public InputAction @Move => m_Wrapper.m_Player_Move;
+        public InputAction @MainAttack => m_Wrapper.m_Player_MainAttack;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -256,6 +290,9 @@ public partial class @Controls: IInputActionCollection2, IDisposable
             @Move.started += instance.OnMove;
             @Move.performed += instance.OnMove;
             @Move.canceled += instance.OnMove;
+            @MainAttack.started += instance.OnMainAttack;
+            @MainAttack.performed += instance.OnMainAttack;
+            @MainAttack.canceled += instance.OnMainAttack;
         }
 
         private void UnregisterCallbacks(IPlayerActions instance)
@@ -266,6 +303,9 @@ public partial class @Controls: IInputActionCollection2, IDisposable
             @Move.started -= instance.OnMove;
             @Move.performed -= instance.OnMove;
             @Move.canceled -= instance.OnMove;
+            @MainAttack.started -= instance.OnMainAttack;
+            @MainAttack.performed -= instance.OnMainAttack;
+            @MainAttack.canceled -= instance.OnMainAttack;
         }
 
         public void RemoveCallbacks(IPlayerActions instance)
@@ -305,5 +345,6 @@ public partial class @Controls: IInputActionCollection2, IDisposable
     {
         void OnDash(InputAction.CallbackContext context);
         void OnMove(InputAction.CallbackContext context);
+        void OnMainAttack(InputAction.CallbackContext context);
     }
 }
