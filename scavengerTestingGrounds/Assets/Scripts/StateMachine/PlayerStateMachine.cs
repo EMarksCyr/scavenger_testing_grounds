@@ -1,6 +1,9 @@
 
+using System;
+using UnityEditor;
 using UnityEngine;
-
+using UnityEngine.Events;
+using UnityEngine.VFX;
 
 [RequireComponent(typeof(InputReader))]
 [RequireComponent(typeof(Animator))]
@@ -11,13 +14,19 @@ public class PlayerStateMachine : StateMachine //holds public references to comp
   
     
     public Vector3 Velocity;
-    public float MovementSpeed { get; private set; } = 30f; //adjust character speed here, can't figure out how to make this a serialized field
-    public float DashForce { get; private set; } = 6f;
+    public float MovementSpeed { get; private set; } = 25f; //adjust character speed here, can't figure out how to make this a serialized field
+    public float DashForce { get; private set; } = 5f;
     public float LookRotationDampFactor { get; private set; } = 10f;
     public Transform MainCamera { get; private set; }
     public InputReader InputReader { get; private set; }
     public Animator Animator { get; private set; }
     public CharacterController Controller { get; private set; }
+
+    public AnimationEventReceiver Receiver; //reciever for animation events
+
+    public VisualEffect currentPrefab;
+
+    //public AnimatorStateInfo StateInfo { get; private set; }
 
     private void Start() //when scene loads
     {
@@ -25,8 +34,7 @@ public class PlayerStateMachine : StateMachine //holds public references to comp
 
         InputReader = GetComponent<InputReader>();
         Animator = GetComponent<Animator>();
-        Controller = GetComponent<CharacterController>();
-
+        Controller = GetComponent<CharacterController>();       
         SwitchState(new PlayerMoveState(this)); //assigns PlayerMoveState() as a default state for the gameobject
     }
 }
@@ -34,7 +42,7 @@ public class PlayerStateMachine : StateMachine //holds public references to comp
 public abstract class PlayerBaseState : State
 {
     protected readonly PlayerStateMachine stateMachine;
-
+    
     protected PlayerBaseState(PlayerStateMachine stateMachine) // accepts the PlayerStateMachine and then assigns the reference to the stateMachine
     {
         this.stateMachine = stateMachine;
@@ -65,6 +73,11 @@ public abstract class PlayerBaseState : State
     {
         stateMachine.Controller.Move(stateMachine.Velocity * Time.deltaTime);
     }
+
+   // protected void SpawnParticle()
+   // {
+    //    VisualEffect currentEffect = Instantiate(currentPrefab, stateMachine.transform.position, stateMachine.transform.rotation)
+    //}
 }
 
 public class PlayerMoveState : PlayerBaseState
@@ -125,7 +138,7 @@ public class PlayerDashState : PlayerBaseState
 
     public override void Enter()
     {
-        Debug.Log("dash pressed"); //so this works fine
+        //Debug.Log("dash pressed"); //so this works fine
         stateMachine.Velocity = new Vector3(stateMachine.Velocity.x* stateMachine.DashForce, stateMachine.Velocity.y, stateMachine.Velocity.z* stateMachine.DashForce); //trying to increase speed in the direction of running by dash force
         stateMachine.Animator.CrossFadeInFixedTime(DashHash, CrossFadeDuration); //crossfades animation to dash animation
     }
@@ -133,7 +146,7 @@ public class PlayerDashState : PlayerBaseState
     public override void Tick()
     {
         DashTime = DashTime + Time.deltaTime;
-        Debug.Log("dash running" + DashTime);
+        //Debug.Log("dash running" + DashTime);
         if (DashTime >= DashTimeLimit) //seeing if this will stop a dash after 5 frames, need to use time.delta time
         {
             stateMachine.SwitchState(new PlayerMoveState(stateMachine)); // want to go back to move state after dash is done
@@ -153,32 +166,54 @@ public class PlayerMainAttackState : PlayerBaseState
     private const float AnimationDampTime = 0.1f;
     private const float CrossFadeDuration = 0.1f; //the time it should take for one animation to transition to the next
     private float MainAttackTime = 0f; //tracks time spent in main attack state
-    private float MainAttackTimeLimit = .25f; //time limit that should equal the time to play out attack animation before exiting state
+    private float MainAttackTimeLimit = .5f; //time limit that should equal the time to play out attack animation before exiting state
+    private VisualEffect BladeHitEffect;
+    //animation event
+    private string BladeHit; //event name
+    [Range(0f, 1f)] public float triggerTime;
 
+    bool hasTriggered;
+    AnimationEventReceiver receiver;
     public PlayerMainAttackState(PlayerStateMachine stateMachine) : base(stateMachine) { }
 
     public override void Enter()
     {
-
-        Debug.Log("main attack pressed"); //this doesn't even register, it's not getting called
+        hasTriggered = false;
+        //Debug.Log("main attack pressed"); //this doesn't even register, it's not getting called
         stateMachine.Animator.CrossFadeInFixedTime(MainAttackHash, CrossFadeDuration);
+        //receiver = stateMachine.Animator.GetComponent<AnimationEventReceiver>(); //get animation reciever for main attack animation
     }
 
     public override void Tick()
     {
+        //float currentTime = stateMachine.Animator.GetCurrentAnimatorStateInfo(0).normalizedTime % 1f;
         MainAttackTime = MainAttackTime + Time.deltaTime;
-        Debug.Log("main attack running" + MainAttackTime);
-
-        if (MainAttackTime >= MainAttackTimeLimit) //seeing if this will stop a dash after 5 frames, need to use time.delta time
+        //Debug.Log("main attack running" + MainAttackTime);
+        if (!hasTriggered && MainAttackTime >= triggerTime)
         {
-            stateMachine.SwitchState(new PlayerMoveState(stateMachine)); // want to go back to move state after dash is done
-            MainAttackTime = 0f;//need something to mark the time of dash start
+            NotifyReceiver(stateMachine.Animator);
+
+            Debug.Log("bladehit activated");
+            hasTriggered = true;
+        }
+            else if (MainAttackTime >= MainAttackTimeLimit) //then at end of animation length, exit animation 
+        {
+            Debug.Log("AttackTime limit reached");
+            stateMachine.SwitchState(new PlayerMoveState(stateMachine)); // want to go back to move state after dash is done            
+            //MainAttackTime = 0f;//need something to mark the time of dash start
         }
 
         FaceMoveDirection();
         Move();
 
     }
-
     public override void Exit() { }
+
+    void NotifyReceiver(Animator animator)
+    {
+        if (receiver != null)
+        {
+            receiver.OnAnimationEventTriggered(BladeHit);
+        }
+    }
 }
