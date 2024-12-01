@@ -204,7 +204,7 @@ public class PlayerMainAttackState : PlayerBaseState
         }
 
         FaceMoveDirection();
-        Move();
+        //Move();
 
     }
     public override void Exit() { }
