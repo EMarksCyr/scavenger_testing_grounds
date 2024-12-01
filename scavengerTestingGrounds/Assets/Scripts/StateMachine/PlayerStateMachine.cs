@@ -166,10 +166,10 @@ public class PlayerMainAttackState : PlayerBaseState
     private const float AnimationDampTime = 0.1f;
     private const float CrossFadeDuration = 0.1f; //the time it should take for one animation to transition to the next
     private float MainAttackTime = 0f; //tracks time spent in main attack state
-    private float MainAttackTimeLimit = .5f; //time limit that should equal the time to play out attack animation before exiting state
+    private float MainAttackTimeLimit = .9f; //time limit that should equal the time to play out attack animation before exiting state
     private VisualEffect BladeHitEffect;
     //animation event
-    private string BladeHit; //event name
+    private string Attack; //event name
     [Range(0f, 1f)] public float triggerTime;
 
     bool hasTriggered;
@@ -213,7 +213,7 @@ public class PlayerMainAttackState : PlayerBaseState
     {
         if (receiver != null)
         {
-            receiver.OnAnimationEventTriggered(BladeHit);
+            receiver.OnAnimationEventTriggered(Attack);
         }
     }
 }
