@@ -44,9 +44,18 @@ public class InputReader : MonoBehaviour, Controls.IPlayerActions //inherits mon
 
     public void OnMainAttack(InputAction.CallbackContext context)
     {
+        Debug.Log("STEWART: Input OnMainAttack callback");
         if (!context.performed)
             return;
 
         OnMainAttackPerformed?.Invoke(); //omitting '?' while debugging
+    }
+
+    /**
+     * True if the button was pressed down at any point during this frame
+     */
+    public bool IsMainAttackActionTriggered()
+    {
+        return controls.Player.MainAttack.triggered;
     }
 }

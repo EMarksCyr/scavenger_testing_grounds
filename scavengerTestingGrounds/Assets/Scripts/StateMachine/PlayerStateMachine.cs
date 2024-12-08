@@ -2,6 +2,7 @@
 using System;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Events;
 using UnityEngine.VFX;
 
@@ -160,55 +161,141 @@ public class PlayerDashState : PlayerBaseState
     public override void Exit() { }
 }
 
+// TODO: move
+public struct ComboStep
+{
+    public string animParam;  // Animation parameter
+    public int animHash;      // Hash reference to animation
+    public float attackAnimEndTime; // Time of the end of the attack animation. Does not include recovery anim. 0 is the start of this combo step.
+    public float fullAnimEndTime;  // Time of the full animation including attack + recovery.
+
+    public ComboStep(string animParam, int animHash, float attackEndTime, float fullAnimEndTime)
+    {
+        Assert.IsTrue(fullAnimEndTime >= attackEndTime);
+
+        this.animParam = animParam;
+        this.animHash = animHash;
+        this.attackAnimEndTime = attackEndTime;
+        this.fullAnimEndTime = fullAnimEndTime;
+    }
+}
+
 public class PlayerMainAttackState : PlayerBaseState
 {
-    private readonly int MainAttackHash = Animator.StringToHash("MainAttack");
     private const float AnimationDampTime = 0.1f;
     private const float CrossFadeDuration = 0.1f; //the time it should take for one animation to transition to the next
-    private float MainAttackTime = 0f; //tracks time spent in main attack state
-    private float MainAttackTimeLimit = .9f; //time limit that should equal the time to play out attack animation before exiting state
-    private VisualEffect BladeHitEffect;
+    //private float animationTime = 0f; //tracks time spent in main attack state
+    //private VisualEffect BladeHitEffect;
     //animation event
-    private string Attack; //event name
-    [Range(0f, 1f)] public float triggerTime;
+    //private string Attack; // rename event name in animator and here
+    //[Range(0f, 1f)] public float triggerTime;
 
-    bool hasTriggered;
-    AnimationEventReceiver receiver;
+    //bool isBladeSlashVfxTriggered = false;
+    //AnimationEventReceiver receiver;
+
+
+    // TODO: STEWART vars
+    public static ComboStep[] comboSteps = {
+        new("MainAttack1", Animator.StringToHash("MainAttack1"), 0.4f, 1.0f),
+        new("MainAttack2", Animator.StringToHash("MainAttack2"), 0.16f, 0.8f), // TODO: roughly 0.2f for attack anim
+        new("MainAttack3", Animator.StringToHash("MainAttack3"), 0.16f, 0.8f)
+    };
+    private int curComboStepIdx = 0;
+    private bool doNextComboStep = false;
+    private float comboStepTime = 0.0f;
+
     public PlayerMainAttackState(PlayerStateMachine stateMachine) : base(stateMachine) { }
 
     public override void Enter()
     {
-        hasTriggered = false;
-        //Debug.Log("main attack pressed"); //this doesn't even register, it's not getting called
-        stateMachine.Animator.CrossFadeInFixedTime(MainAttackHash, CrossFadeDuration);
+
+        Debug.Log("main attack pressed");
+
+        curComboStepIdx = 0;
+        comboStepTime = 0f;
+        doNextComboStep = false;
+        //isBladeSlashVfxTriggered = false;
+
+        Debug.Log("STEWART: STARTING ATTACK ANIM FROM BEGINNING");
+        FaceMoveDirection();
+
+        stateMachine.Animator.SetBool(comboSteps[0].animParam, true);
+        stateMachine.Animator.CrossFadeInFixedTime(comboSteps[0].animHash, CrossFadeDuration);
         //receiver = stateMachine.Animator.GetComponent<AnimationEventReceiver>(); //get animation reciever for main attack animation
     }
 
+    /*
+     * lowerCaseVars
+     * CaptialClassesStructures...
+     * UpperCaseFunctions
+     * m_classMemberVariables
+     * s_staticVariables
+     * g_globalVariables
+     * CONSTANTS
+     */
+
+    // TODO(sdsmith): sdkjfsldjfksldjf
+    // if the button was pressed again within the "combo step window", mark to move to the next combo step.
+    // if min anim time has passed for current combo step and should move to next combo step, start next combo step
+    // otherwise, do combo step 1 (ie start the attack anim from the beginning)
+
+    // NOTE(sdsmith): 
+    // TODO
+    // IMPORTANT
+    // PERFORMANCE
+    // DOC
+
     public override void Tick()
     {
-        //float currentTime = stateMachine.Animator.GetCurrentAnimatorStateInfo(0).normalizedTime % 1f;
-        MainAttackTime = MainAttackTime + Time.deltaTime;
-        //Debug.Log("main attack running" + MainAttackTime);
-        if (!hasTriggered && MainAttackTime >= triggerTime)
-        {
-            NotifyReceiver(stateMachine.Animator);
+        Debug.Log("Tick: start Tick");
+        Debug.Log($"Tick: Animator - normalizeTime={stateMachine.Animator.GetCurrentAnimatorStateInfo(0).normalizedTime}");
+        Debug.Log($"Tick: Animator - current running anim: '{stateMachine.Animator.GetCurrentAnimatorClipInfo(0)[0].clip.name}'");
 
-            Debug.Log("bladehit activated");
-            hasTriggered = true;
-        }
-            else if (MainAttackTime >= MainAttackTimeLimit) //then at end of animation length, exit animation 
+        comboStepTime += Time.deltaTime; // NOTE: A += B => A = A + B
+        ref ComboStep curStep = ref comboSteps[curComboStepIdx];
+
+        if (comboStepTime <= curStep.attackAnimEndTime 
+            && stateMachine.InputReader.IsMainAttackActionTriggered())
         {
-            Debug.Log("AttackTime limit reached");
-            stateMachine.SwitchState(new PlayerMoveState(stateMachine)); // want to go back to move state after dash is done            
-            //MainAttackTime = 0f;//need something to mark the time of dash start
+            Debug.Log($"STEWART: Queue next anim step: {curComboStepIdx} -> {curComboStepIdx+1}");
+            // Queue up the next combo step to be triggered
+            doNextComboStep = true;
         }
 
-        FaceMoveDirection();
-        //Move();
+        if (comboStepTime >= curStep.attackAnimEndTime) {
+            Debug.Log($"STEWART: attack anim done for step {curComboStepIdx}");
+            bool onFinalComboStep = curComboStepIdx >= comboSteps.Length - 1;
+            if (doNextComboStep && !onFinalComboStep)
+            {
+                Debug.Log("STEWART: transition to next step");
 
+                // Continue the combo, go to next combo step
+                stateMachine.Animator.SetBool(comboSteps[curComboStepIdx].animParam, false);
+                curComboStepIdx++;
+
+                curStep = ref comboSteps[curComboStepIdx];
+                stateMachine.Animator.SetBool(curStep.animParam, true);
+                stateMachine.Animator.CrossFadeInFixedTime(curStep.animHash, CrossFadeDuration);
+
+                comboStepTime = 0.0f;
+                doNextComboStep = false;
+            }
+            else if (comboStepTime >= curStep.fullAnimEndTime)
+            {
+                Debug.Log($"STEWART: transition to idle anim from step {curComboStepIdx}");
+                // Done full anim, transition to idle
+                stateMachine.SwitchState(new PlayerMoveState(stateMachine));
+            }
+        }
+        Debug.Log("Tick: end Tick");
     }
-    public override void Exit() { }
 
+    public override void Exit() {
+        Debug.Log("STEWART: EXIT BIIIIIIIIIIIITCH");
+        
+    }
+
+    /*
     void NotifyReceiver(Animator animator)
     {
         if (receiver != null)
@@ -216,4 +303,5 @@ public class PlayerMainAttackState : PlayerBaseState
             receiver.OnAnimationEventTriggered(Attack);
         }
     }
+    */
 }
