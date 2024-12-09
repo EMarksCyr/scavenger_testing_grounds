@@ -133,7 +133,7 @@ public class PlayerDashState : PlayerBaseState
     private const float AnimationDampTime = 0.1f;
     private const float CrossFadeDuration = 0.1f; //the time it should take for one animation to transition to the next
     private float DashTime = 0f;
-    private float DashTimeLimit = .05f; //duration of time for dash
+    private float DashTimeLimit = .058f; //duration of time for dash
 
     public PlayerDashState(PlayerStateMachine stateMachine) : base(stateMachine) { }
 
@@ -183,7 +183,7 @@ public struct ComboStep
 public class PlayerMainAttackState : PlayerBaseState
 {
     //private const float AnimationDampTime = 0.1f;
-    private const float CrossFadeDuration = 0.1f; //the time it should take for one animation to transition to the next
+    private const float CrossFadeDuration = 0.05f; //the time it should take for one animation to transition to the next
     //private float animationTime = 0f; //tracks time spent in main attack state
     //private VisualEffect BladeHitEffect;
     //animation event
@@ -194,9 +194,9 @@ public class PlayerMainAttackState : PlayerBaseState
     //AnimationEventReceiver receiver;
 
     public static ComboStep[] comboSteps = {
-        new("MainAttack1", Animator.StringToHash("MainAttack1"), 0.4f, 1.0f),
-        new("MainAttack2", Animator.StringToHash("MainAttack2"), 0.16f, 0.8f), // TODO: roughly 0.2f for attack anim
-        new("MainAttack3", Animator.StringToHash("MainAttack3"), 0.16f, 0.8f)
+        new("MainAttack1", Animator.StringToHash("MainAttack1"), 0.72f, 1f),
+        new("MainAttack2", Animator.StringToHash("MainAttack2"), 0.30f, 0.45f), // TODO: roughly 0.2f for attack anim
+        new("MainAttack3", Animator.StringToHash("MainAttack3"), 0.46f, 0.9f)
     };
     private int curComboStepIdx = 0;
     private bool doNextComboStep = false;
