@@ -199,9 +199,8 @@ public class PlayerMainAttackState : PlayerBaseState
         new("MainAttack3", Animator.StringToHash("MainAttack3"), 0.46f, 0.9f)
     };
     private int curComboStepIdx = 0;
-    private bool doNextComboStep = false;
+    private int doNextComboStepCount = 0; // Number of times the user has asked for next combo step
     private float comboStepTime = 0.0f;
-    private int todo_debug_tick_counter = 0;
     private bool isFirstTick = true;
 
     public PlayerMainAttackState(PlayerStateMachine stateMachine) : base(stateMachine) { }
@@ -210,7 +209,7 @@ public class PlayerMainAttackState : PlayerBaseState
     {
         curComboStepIdx = 0;
         comboStepTime = 0f;
-        doNextComboStep = false;
+        doNextComboStepCount = 0;
         isFirstTick = true;
         //isBladeSlashVfxTriggered = false;
 
@@ -240,8 +239,6 @@ public class PlayerMainAttackState : PlayerBaseState
 
     public override void Tick()
     {
-        todo_debug_tick_counter++;
-
         comboStepTime += Time.deltaTime; // NOTE: A += B => A = A + B
         ref ComboStep curStep = ref comboSteps[curComboStepIdx];
 
@@ -250,12 +247,12 @@ public class PlayerMainAttackState : PlayerBaseState
             && stateMachine.InputReader.IsMainAttackActionTriggered())
         {
             // Queue up the next combo step to be triggered
-            doNextComboStep = true;
+            doNextComboStepCount++;
         }
 
         if (comboStepTime >= curStep.attackAnimEndTime) {
             bool onFinalComboStep = curComboStepIdx >= comboSteps.Length - 1;
-            if (doNextComboStep && !onFinalComboStep)
+            if (doNextComboStepCount > 0 && !onFinalComboStep)
             {
                 // Continue the combo, go to next combo step
                 stateMachine.Animator.SetBool(comboSteps[curComboStepIdx].animParam, false);
@@ -266,13 +263,13 @@ public class PlayerMainAttackState : PlayerBaseState
                 stateMachine.Animator.CrossFadeInFixedTime(curStep.animHash, CrossFadeDuration);
 
                 comboStepTime = 0.0f;
-                doNextComboStep = false;
+                doNextComboStepCount--;
             }
             else if (comboStepTime >= curStep.fullAnimEndTime)
             {
                 // Done full anim, transition to idle state
                
-                doNextComboStep = false;
+                doNextComboStepCount = 0;
                 stateMachine.Animator.SetBool(curStep.animParam, false);
                 stateMachine.SwitchState(new PlayerMoveState(stateMachine)); // TODO: memory leak? Are we supposed to being doing new and will the old idle state object get cleaned up??
             }
