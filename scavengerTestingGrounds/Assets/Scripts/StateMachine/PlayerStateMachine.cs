@@ -201,6 +201,8 @@ public class PlayerMainAttackState : PlayerBaseState
     private int curComboStepIdx = 0;
     private bool doNextComboStep = false;
     private float comboStepTime = 0.0f;
+    private int todo_debug_tick_counter = 0;
+    private bool isFirstTick = true;
 
     public PlayerMainAttackState(PlayerStateMachine stateMachine) : base(stateMachine) { }
 
@@ -209,10 +211,12 @@ public class PlayerMainAttackState : PlayerBaseState
         curComboStepIdx = 0;
         comboStepTime = 0f;
         doNextComboStep = false;
+        isFirstTick = true;
         //isBladeSlashVfxTriggered = false;
 
         FaceMoveDirection();
 
+        // TODO: theory, the first time we hit Enter and Tick, the buttons are considered triggered because it will occur in the same frame, therefore we are counting the same input as effectively two inputs.
         stateMachine.Animator.SetBool(comboSteps[0].animParam, true);
         stateMachine.Animator.CrossFadeInFixedTime(comboSteps[0].animHash, CrossFadeDuration);
         //receiver = stateMachine.Animator.GetComponent<AnimationEventReceiver>(); //get animation reciever for main attack animation
@@ -236,10 +240,13 @@ public class PlayerMainAttackState : PlayerBaseState
 
     public override void Tick()
     {
+        todo_debug_tick_counter++;
+
         comboStepTime += Time.deltaTime; // NOTE: A += B => A = A + B
         ref ComboStep curStep = ref comboSteps[curComboStepIdx];
 
-        if (comboStepTime <= curStep.attackAnimEndTime 
+        if (!isFirstTick 
+            && comboStepTime <= curStep.attackAnimEndTime 
             && stateMachine.InputReader.IsMainAttackActionTriggered())
         {
             // Queue up the next combo step to be triggered
@@ -270,6 +277,10 @@ public class PlayerMainAttackState : PlayerBaseState
                 stateMachine.SwitchState(new PlayerMoveState(stateMachine)); // TODO: memory leak? Are we supposed to being doing new and will the old idle state object get cleaned up??
             }
         }
+
+        // Make sure to set at the end of the tick so it remains true for the
+        // whole first tick
+        isFirstTick = false;
     }
 
     public override void Exit() {
