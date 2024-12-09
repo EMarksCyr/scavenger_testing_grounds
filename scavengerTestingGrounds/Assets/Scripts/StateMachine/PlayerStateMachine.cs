@@ -194,9 +194,9 @@ public class PlayerMainAttackState : PlayerBaseState
     //AnimationEventReceiver receiver;
 
     public static ComboStep[] comboSteps = {
-        new("MainAttack1", Animator.StringToHash("MainAttack1"), 0.72f, 1f),
-        new("MainAttack2", Animator.StringToHash("MainAttack2"), 0.30f, 0.45f), // TODO: roughly 0.2f for attack anim
-        new("MainAttack3", Animator.StringToHash("MainAttack3"), 0.46f, 0.9f)
+        new("MainAttack1", Animator.StringToHash("MainAttack1"), 0.28f, .66f),
+        new("MainAttack2", Animator.StringToHash("MainAttack2"), 0.23f, 0.46f), // TODO: roughly 0.2f for attack anim
+        new("MainAttack3", Animator.StringToHash("MainAttack3"), 0.35f, 0.71f)
     };
     private int curComboStepIdx = 0;
     private int doNextComboStepCount = 0; // Number of times the user has asked for next combo step
